@@ -1,5 +1,7 @@
 package methamphibians.tk.simpleruntrack;
 
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -8,8 +10,9 @@ import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.Messenger;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.TaskStackBuilder;
 import android.util.Log;
-import android.widget.Toast;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -18,7 +21,6 @@ public class srtTimer extends Service {
     public srtTimer() {
     }
     int number = 0;
-    double distance = 0;
     SharedPreferences prefs;
     SharedPreferences.Editor e;
     GPSHelper gps;
@@ -54,6 +56,8 @@ public class srtTimer extends Service {
             @Override
             public void run() {
                 runStats();
+                makeNotification("Time: " + activity_main.intToTime(number),
+                        "Distance: " + String.format("%03.3f",gps.distance));
             }
         },0,1000);
         return START_STICKY;
@@ -68,5 +72,37 @@ public class srtTimer extends Service {
         e.putInt("time",number++);
         e.putLong("distance", Double.doubleToRawLongBits(gps.distance));
         e.commit();
+    }
+    private void makeNotification(String title, String text) {
+        int mId = 1;
+
+        NotificationCompat.Builder mBuilder =
+                new NotificationCompat.Builder(this)
+                        .setSmallIcon(R.mipmap.ic_launcher)
+                        .setContentTitle(title)
+                        .setContentText(text);
+// Creates an explicit intent for an Activity in your app
+        Intent resultIntent = new Intent(this, activity_main.class);
+
+// The stack builder object will contain an artificial back stack for the
+// started Activity.
+// This ensures that navigating backward from the Activity leads out of
+// your application to the Home screen.
+        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
+// Adds the back stack for the Intent (but not the Intent itself)
+        stackBuilder.addParentStack(activity_main.class);
+// Adds the Intent that starts the Activity to the top of the stack
+        stackBuilder.addNextIntent(resultIntent);
+        PendingIntent resultPendingIntent =
+                stackBuilder.getPendingIntent(
+                        0,
+                        PendingIntent.FLAG_UPDATE_CURRENT
+                );
+        mBuilder.setContentIntent(resultPendingIntent);
+        mBuilder.setOngoing(true);
+        NotificationManager mNotificationManager =
+                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+// mId allows you to update the notification later on.
+        mNotificationManager.notify(mId, mBuilder.build());
     }
 }

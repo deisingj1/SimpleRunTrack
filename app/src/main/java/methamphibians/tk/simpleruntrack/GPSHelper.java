@@ -30,7 +30,7 @@ public class GPSHelper {
     private static int GPS_FREQ = 1000;
     static double latitude = -1;
     static double longitude = -1;
-    double gps_acc = 1000;
+    static double gps_acc = 1000;
 
     LocationListener locationListener = new LocationListener() {
         public void onLocationChanged(Location location) {
@@ -55,18 +55,6 @@ public class GPSHelper {
         latitude = l.getLatitude();
         longitude = l.getLongitude();
         gps_acc = l.getAccuracy();
-        /*Activity a = (Activity) context;
-        TextView tv = (TextView) a.findViewById(R.id.milesView);
-        tv.setText(String.format("%03.3f",distance));
-        System.out.println("GPS MakeUseOf");
-        tv = (TextView) a.findViewById(R.id.accView);
-        tv.setText(String.format("%f",gps_acc));
-        tv = (TextView) a.findViewById(R.id.paceView);
-        //FIXME fix pace
-        int pace = (int) (50 / distance);
-        String timeValue = activity_main.intToTime(pace);
-        tv.setText(timeValue);
-        */
     }
 
     public double calcDistance(double lat2_d, double lon2_d) {
@@ -90,6 +78,6 @@ public class GPSHelper {
     }
 
     public void startLocationUpdates() throws SecurityException {
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, GPSHelper.getGpsFreq(), 0, locationListener);
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, GPSHelper.getGpsFreq(), 5, locationListener);
     }
 }

@@ -37,8 +37,16 @@ public class activity_main extends AppCompatActivity implements OnClickListener 
         setContentView(R.layout.activity_main);
         findViewById(R.id.button).setOnClickListener(this);
         gps = new GPSHelper(this);
-
-
+        SharedPreferences prefs = getSharedPreferences("SRT", 0);
+        ((TextView) findViewById(R.id.timeView)).setText(intToTime(prefs.getInt("time",0)));
+        ((TextView) findViewById(R.id.milesView)).setText(String.valueOf(Double.longBitsToDouble(prefs.getLong("distance",0))));
+        if(prefs.getInt("time",0) != 0) {
+            t.scheduleAtFixedRate(new uiUpdate(), 0, 1000);
+            started = true;
+            Button b = (Button) findViewById(R.id.button);
+            b.setText("Stop Run");
+            doBindService();
+        }
     }
     @Override
     protected void onDestroy() {
@@ -60,25 +68,7 @@ public class activity_main extends AppCompatActivity implements OnClickListener 
                     b = (Button) findViewById(R.id.pauseButton);
                     b.setEnabled(true);
                     started = true;
-                    t.scheduleAtFixedRate(new TimerTask() {
-                        @Override
-                        public void run() {
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    String[] getStats = getStats();
-                                    int time = Integer.parseInt(getStats[0]);
-                                    double distance = Double.parseDouble(getStats[1]);
-                                    TextView tv = (TextView) findViewById(R.id.timeView);
-                                    tv.setText(intToTime(time));
-                                    tv = (TextView) findViewById(R.id.milesView);
-                                    tv.setText(String.format("%03.3f",distance));
-                                    makeNotification("Time: " + intToTime(time),
-                                            "Distance: " + String.format("%03.3f",distance));
-                                }
-                            });
-                        }
-                    }, 0, 1000);
+                    t.scheduleAtFixedRate(new uiUpdate(), 0, 1000);
                 } else if (started) {
                     unbindService(myConnection);
                     stopService(new Intent(activity_main.this, srtTimer.class));
@@ -100,6 +90,34 @@ public class activity_main extends AppCompatActivity implements OnClickListener 
                 break;
             default:
                 break;
+        }
+    }
+    private class uiUpdate extends TimerTask {
+        @Override
+        public void run() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    String[] getStats = getStats();
+                    int time = Integer.parseInt(getStats[0]);
+                    double distance = Double.parseDouble(getStats[1]);
+                    TextView tv = (TextView) findViewById(R.id.timeView);
+                    tv.setText(intToTime(time));
+                    tv = (TextView) findViewById(R.id.milesView);
+                    tv.setText(String.format("%03.3f",distance));
+                    tv = (TextView) findViewById(R.id.paceView);
+                    int pace = 0;
+                    try {
+                        pace = (int) (time / distance);
+                    }
+                    catch(NullPointerException e) {
+
+                    }
+                    tv.setText(intToTime(pace));
+                    tv = (TextView) findViewById(R.id.accView);
+                    tv.setText(Double.toString(gps.gps_acc));
+                }
+            });
         }
     }
     public static String intToTime(int time) {
@@ -166,37 +184,6 @@ public class activity_main extends AppCompatActivity implements OnClickListener 
         }
         return false;
     }
-    private void makeNotification(String title, String text) {
-        int mId = 1;
 
-        NotificationCompat.Builder mBuilder =
-                new NotificationCompat.Builder(this)
-                        .setSmallIcon(R.mipmap.ic_launcher)
-                        .setContentTitle(title)
-                        .setContentText(text);
-// Creates an explicit intent for an Activity in your app
-        Intent resultIntent = new Intent(this, activity_main.class);
-
-// The stack builder object will contain an artificial back stack for the
-// started Activity.
-// This ensures that navigating backward from the Activity leads out of
-// your application to the Home screen.
-        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
-// Adds the back stack for the Intent (but not the Intent itself)
-        stackBuilder.addParentStack(activity_main.class);
-// Adds the Intent that starts the Activity to the top of the stack
-        stackBuilder.addNextIntent(resultIntent);
-        PendingIntent resultPendingIntent =
-                stackBuilder.getPendingIntent(
-                        0,
-                        PendingIntent.FLAG_UPDATE_CURRENT
-                );
-        mBuilder.setContentIntent(resultPendingIntent);
-        mBuilder.setOngoing(true);
-        NotificationManager mNotificationManager =
-                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-// mId allows you to update the notification later on.
-        mNotificationManager.notify(mId, mBuilder.build());
-    }
 
 }
