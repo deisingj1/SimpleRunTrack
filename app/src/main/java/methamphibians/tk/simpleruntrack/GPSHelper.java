@@ -9,13 +9,14 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
-import android.widget.TextView;
+
+import methamphibians.tk.simpleruntrack.math.math;
 
 public class GPSHelper {
     LocationManager locationManager;
     Context context;
     public double distance = 0.0;
-
+    public double accuracy = 0.0;
 
     public GPSHelper(Context c) {
         context = c;
@@ -28,9 +29,10 @@ public class GPSHelper {
     }
 
     private static int GPS_FREQ = 1000;
-    static double latitude = -1;
-    static double longitude = -1;
-    static double gps_acc = 1000;
+    double latitude = -1;
+    double longitude = -1;
+    public double gps_acc = 1000;
+    public double speed = 0.0;
 
     LocationListener locationListener = new LocationListener() {
         public void onLocationChanged(Location location) {
@@ -50,25 +52,15 @@ public class GPSHelper {
 
     private void makeUseOfNewLocation(Location l) {
         if(gps_acc < 30 && latitude != -1) {
-            distance += calcDistance(l.getLatitude(), l.getLongitude());
+            distance += math.calcDistance(latitude, longitude, l.getLatitude(), l.getLongitude());
         }
         latitude = l.getLatitude();
         longitude = l.getLongitude();
         gps_acc = l.getAccuracy();
+        speed = l.getSpeed();
     }
 
-    public double calcDistance(double lat2_d, double lon2_d) {
-        double lat1 = Math.toRadians(latitude);
-        double lon1 = Math.toRadians(longitude);
-        double lat2 = Math.toRadians(lat2_d);
-        double lon2 = Math.toRadians(lon2_d);
-        double dlon = lon2 - lon1;
-        double dlat = lat2 - lat1;
-        double a  = Math.pow(Math.sin(dlat/2),2) + Math.cos(lat1) * Math.cos(lat2) * Math.pow(Math.sin(dlon/2),2);
-        double c  = 2 * Math.atan2(Math.sqrt(a),Math.sqrt(1-a)); // great circle distance in radians
-        double d = 3961 * c;
-        return d;
-    }
+
     public static int getGpsFreq() {
         return GPS_FREQ;
     }
@@ -76,8 +68,11 @@ public class GPSHelper {
     public static void setGpsFreq(int f) {
         GPS_FREQ = f;
     }
+    public void cancelLocationUpdates() throws SecurityException {
+        locationManager.removeUpdates(locationListener);
+    }
 
     public void startLocationUpdates() throws SecurityException {
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, GPSHelper.getGpsFreq(), 5, locationListener);
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, GPSHelper.getGpsFreq(), 3, locationListener);
     }
 }
